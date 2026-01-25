@@ -214,7 +214,7 @@ class JavaExecutor(CodeExecutor):
         harness += f'            Object[] methodArgs = new Object[{len(params)}];\n'
         
         for i, param in enumerate(params):
-            val = self._python_to_java(test_input[param])
+            val = self._python_to_java(test_input[param], param_name=param)
             harness += f'            methodArgs[{i}] = {val};\n'
             
         # Find and invoke method using reflection
@@ -243,7 +243,11 @@ class JavaExecutor(CodeExecutor):
         harness += '            } else {\n'
         harness += '                printResult(result);\n'
         harness += '            }\n'
-        
+        harness += '        \n'
+        harness += '        } catch (IllegalArgumentException e) {\n'
+        harness += '            System.err.println("Runtime Error: Argument Mismatch. Check input types.");\n'
+        harness += '            e.printStackTrace(System.err);\n'
+        harness += '            System.exit(1);\n'
         harness += '        } catch (Exception e) {\n'
         harness += '            System.err.println("Runtime Error: " + e.getMessage());\n'
         harness += '            e.printStackTrace(System.err);\n'
@@ -281,7 +285,7 @@ class JavaExecutor(CodeExecutor):
         
         return harness
     
-    def _python_to_java(self, value):
+    def _python_to_java(self, value, param_name=None):
         """Convert Python value to Java code string"""
         if isinstance(value, bool):
             return 'true' if value else 'false'
@@ -291,7 +295,13 @@ class JavaExecutor(CodeExecutor):
             return f'"{value}"'
         elif isinstance(value, list):
             if len(value) == 0:
-                return 'new int[0]'
+                # Handle empty list type inference based on param name
+                if param_name == 'lists':
+                    return 'new int[0][0]'
+                elif param_name == 's':
+                    return 'new char[0]'
+                else:
+                    return 'new int[0]'
             elif isinstance(value[0], list):
                 # 2D int array: [[1,2], [3,4]] -> new int[][] {{1,2}, {3,4}}
                 inners = []
