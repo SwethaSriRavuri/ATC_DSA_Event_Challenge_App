@@ -4,7 +4,7 @@
     "difficulty": "Easy",
     "marks": 10,
     "type": "algorithm",
-    "description": "Write a function that reverses a string. The input string is given as an array of characters `s`.\n\nYou must do this by modifying the input array in-place with O(1) extra memory.\n\nExample 1:\nInput: s = ['h','e','l','l','o']\nOutput: ['o','l','l','e','h']\n\nExample 2:\nInput: s = ['H','a','n','n','a','h']\nOutput: ['h','a','n','n','a','H']\n\nConstraints:\n- 1 <= s.length <= 10^5\n- s[i] is a printable ascii character.",
+    "description": "**Problem Statement:**\nWrite a function that reverses a string. The input string is given as an array of characters `s`.\n\nYou must do this by modifying the input array **in-place** with `O(1)` extra memory.\n\n**Input Format:**\n- `s`: An array of characters (e.g., `['h','e','l','l','o']`)\n\n**Output Format:**\n- The function should return the modified array (or modify it in-place).\n\n**Examples:**\n\n*Example 1:*\n**Input:** `s = ['h','e','l','l','o']`\n**Output:** `['o','l','l','e','h']`\n\n*Example 2:*\n**Input:** `s = ['H','a','n','n','a','h']`\n**Output:** `['h','a','n','n','a','H']`\n\n**Constraints:**\n- `1 <= s.length <= 10^5`\n- `s[i]` is a printable ascii character.",
     "function_signature": {
         "python": "def solution(s):",
         "java": "class Solution {\n    public void solution(char[] s) {\n        \n    }\n}"

@@ -1,0 +1,42 @@
+Tech Stack / Languages Used
+Python: The core of the application. It runs the backend server (Flask) and manages the desktop window.
+JavaScript (Vanilla): Handles the frontend logic, specifically the anti-cheating detection (tab switching/window focus) and the contest timer.
+HTML & CSS: Provides the user interface.
+SQLite: A lightweight, file-based database to store user progress and scores locally.
+Java (Target Language): The app includes a Java compiler chain to allow users to write and execute Java code.
+How We Implemented It
+1. The "Hybrid" Architecture Instead of building a complex native app from scratch, we built a Web App (Flask + HTML/JS) and wrapped it inside a Desktop Window using a Python library called pywebview.
+
+Why? This gives us the ease of web development (CSS for styling, JS for logic) but the power of a desktop app (controlling the window, forcing fullscreen, blocking Alt+Tab).
+2. The Anti-Cheating System We implemented a "Three-Strike System" using JavaScript event listeners:
+
+window.onblur: Detects if you click outside the window.
+document.onvisibilitychange: Detects if you switch tabs or minimize.
+resize: Detects if you try to un-maximize the window. If any of these happen, we send a "Violation" signal to the Python backend. If it reaches 3, the backend marks the user as DISQUALIFIED and locks the UI.
+3. The Code Execution Engine (The "Judge") When you click "Run", your code is sent to the Python backend.
+4. Blocks participants from retaking the test after they finish-duplicate entries are not allowed.
+
+Security: We save your code to a temporary, isolated file.
+Execution: We use Python's subprocess module to run that file separately.
+Java Handling: For Java, we wrote a special "Test Harness". It compiles your code (javac) and then uses Java Reflection to dynamically find your solution method and run it with our test inputs. This is why you don't need to write public static void main yourself.
+Participant & Contest APIs
+Method	Endpoint	Description
+POST	/api/register	Registers a new participant and starts their contest session.
+GET	/api/problems	Retrieves the list of all available problems.
+GET	/api/problem/<id>	Fetches a specific problem by ID (optionally specifies language).
+POST	/api/run	Runs code against a sample test case and returns output/errors.
+POST	/api/submit	Submits code for final judging against all hidden test cases.
+GET	/api/contest/status	Gets the current status of the participant (e.g., active, finished).
+GET	/api/results	Retrieves the participant's final results.
+POST	/api/contest/end	Manually ends the contest for the participant.
+POST	/api/contest/violation	Records an anti-cheating violation (e.g., tab switch).
+Organizer & Data
+Method	Endpoint	Description
+GET	/api/organizer/data	Retrieves real-time leaderboard data for the organizer view.
+Page Routes (HTML)
+/: Landing/Registration page
+/contest: Main contest interface
+/completion: Contest completion summary page
+/organizer: Organizer leaderboard dashboard
+
+ They are REST APIs built with Python on the server side, but they are designed to be used by JavaScript on the client side.
