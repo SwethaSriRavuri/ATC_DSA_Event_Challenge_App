@@ -292,6 +292,16 @@ class JavaExecutor(CodeExecutor):
         elif isinstance(value, list):
             if len(value) == 0:
                 return 'new int[0]'
+            elif isinstance(value[0], list):
+                # 2D int array: [[1,2], [3,4]] -> new int[][] {{1,2}, {3,4}}
+                inners = []
+                for sub in value:
+                    if not sub:
+                        inners.append('{}')
+                    else:
+                        content = ', '.join(str(x) for x in sub)
+                        inners.append(f'{{{content}}}')
+                return f'new int[][] {{{", ".join(inners)}}}'
             elif isinstance(value[0], str):
                 # char array
                 chars = ', '.join([f"'{c}'" for c in value])
