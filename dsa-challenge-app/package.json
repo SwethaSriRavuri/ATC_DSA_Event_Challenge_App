@@ -1,0 +1,15 @@
+{
+  "name": "dsa-challenge-app",
+  "version": "1.0.0",
+  "description": "An offline, desktop-based coding challenge application for conducting LeetCode-style DSA contests. Packaged as a standalone Windows `.exe` file.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

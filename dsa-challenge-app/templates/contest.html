@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contest - DSA Challenge</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/contest.css') }}">
+</head>
+
+<body>
+    <!-- Start Overlay -->
+    <div id="startOverlay"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white;">
+        <h1>Ready to Begin?</h1>
+        <p style="margin-bottom: 2rem; color: #cbd5e1;">Click below to enter fullscreen mode and start the timer.</p>
+        <button id="enterFullscreenBtn"
+            style="padding: 1rem 2rem; font-size: 1.2rem; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.2s;">
+            Enter Contest
+        </button>
+    </div>
+
+    <!-- Fullscreen Required Overlay -->
+    <div id="fullscreenBlocker"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9998; justify-content: center; align-items: center; flex-direction: column; color: white;">
+        <h1 style="color: #ef4444; margin-bottom: 1rem;">⚠️ Fullscreen Required</h1>
+        <p style="margin-bottom: 2rem; color: #cbd5e1; text-align: center; max-width: 600px;">
+            You must be in fullscreen mode to participate.<br>
+            Using split-screen or windowed mode is prohibited.
+        </p>
+        <button onclick="enableFullscreen()"
+            style="padding: 1rem 2rem; font-size: 1.1rem; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer;">
+            Return to Contest
+        </button>
+    </div>
+
+    <div class="contest-container">
+        <!-- Warning Modal -->
+        <div id="warningModal" class="modal" style="display: none;">
+            <div class="modal-content warning">
+                <h2>⚠️ Warning!</h2>
+                <p id="warningText">You switched away from the contest window!</p>
+                <p><strong>Violations: <span id="violationCount">0</span>/3</strong></p>
+                <p>One more violation and you will be disqualified!</p>
+                <button onclick="closeWarning()" class="btn-primary">I Understand</button>
+            </div>
+        </div>
+
+        <!-- End Contest Confirmation Modal -->
+        <div id="endContestModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>End Contest?</h2>
+                <p>Are you sure you want to end the contest?</p>
+                <p class="sub-text">This action cannot be undone.</p>
+                <div class="modal-actions">
+                    <button onclick="confirmEndContest()" class="btn-danger">Yes, End Contest</button>
+                    <button onclick="cancelEndContest()" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disqualification Modal -->
+        <div id="disqualifyModal" class="modal" style="display: none;">
+            <div class="modal-content error">
+                <h2>❌ Disqualified!</h2>
+                <p>You have been disqualified for switching away from the contest window 3 times.</p>
+                <p>The contest has ended.</p>
+            </div>
+        </div>
+
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="left-info">
+                <span class="user-name">👤 {{ name }}</span>
+                <span class="violations">⚠️ Violations: <span id="topViolations">0</span>/3</span>
+            </div>
+            <div class="right-info">
+                <span class="score" id="score">Score: 0/100</span>
+                <span class="timer" id="timer">⏱ 02:00:00</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Sidebar - Problems -->
+            <div class="sidebar">
+                <h3>📝 Problems</h3>
+                <div id="problemList" class="problem-list"></div>
+            </div>
+
+            <!-- Center - Problem & Editor -->
+            <div class="editor-section">
+                <!-- Problem Description -->
+                <div class="problem-panel">
+                    <h3>Problem Description</h3>
+                    <div id="problemDescription" class="problem-content">
+                        Select a problem from the list to begin
+                    </div>
+                </div>
+
+                <!-- Code Editor -->
+                <div class="editor-panel">
+                    <div class="editor-header">
+                        <h3>💻 Code Editor</h3>
+                        <div class="language-selector">
+                            <label for="language">Language:</label>
+                            <select id="language">
+                                <option value="python">Python</option>
+                                <option value="java">Java</option>
+                            </select>
+                        </div>
+                    </div>
+                    <textarea id="codeEditor" class="code-editor" spellcheck="false"></textarea>
+                </div>
+
+                <!-- Error Display Panel -->
+                <div id="errorPanel" class="error-panel" style="display: none;">
+                    <div class="error-header">⚠️ Error Output</div>
+                    <pre id="errorContent" class="error-content"></pre>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-bar">
+                    <button id="runBtn" class="btn btn-run">▶ Run Code</button>
+                    <button id="submitBtn" class="btn btn-submit">✓ Submit</button>
+                    <button id="endBtn" class="btn btn-end">End Contest</button>
+                    <div id="result" class="result-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/contest.js') }}"></script>
+</body>
+
+</html>

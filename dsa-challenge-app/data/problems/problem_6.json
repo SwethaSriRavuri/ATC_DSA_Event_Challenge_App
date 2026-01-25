@@ -1,0 +1,42 @@
+{
+    "problem_id": 6,
+    "title": "Longest Substring Without Repeating Characters",
+    "difficulty": "Medium",
+    "marks": 15,
+    "type": "algorithm",
+    "description": "Given a string `s`, find the length of the longest substring without repeating characters.\n\nExample 1:\nInput: s = \"abcabcbb\"\nOutput: 3\nExplanation: The answer is \"abc\", with the length of 3.\n\nExample 2:\nInput: s = \"bbbbb\"\nOutput: 1\nExplanation: The answer is \"b\", with the length of 1.\n\nExample 3:\nInput: s = \"pwwkew\"\nOutput: 3\nExplanation: The answer is \"wke\", with the length of 3.\nNotice that the answer must be a substring, \"pwke\" is a subsequence and not a substring.\n\nConstraints:\n- 0 <= s.length <= 5 * 10^4\n- s consists of English letters, digits, symbols and spaces.",
+    "function_signature": {
+        "python": "def solution(s):",
+        "java": "class Solution {\n    public int solution(String s) {\n        \n    }\n}"
+    },
+    "starter_code": {
+        "python": "def solution(s):\n    # Write your code here\n    pass",
+        "java": "class Solution {\n    public int solution(String s) {\n        // Write your code here\n        return 0;\n    }\n}"
+    },
+    "test_cases": [
+        {
+            "input": {
+                "s": "abcabcbb"
+            },
+            "expected_output": 3
+        },
+        {
+            "input": {
+                "s": "bbbbb"
+            },
+            "expected_output": 1
+        },
+        {
+            "input": {
+                "s": "pwwkew"
+            },
+            "expected_output": 3
+        },
+        {
+            "input": {
+                "s": ""
+            },
+            "expected_output": 0
+        }
+    ]
+}
