@@ -106,26 +106,30 @@ class JavaExecutor(CodeExecutor):
                     text=True,
                     timeout=5
                 )
-            except FileNotFoundError:
-                # Try specific detected path
-                fallback_javac = r"C:\Program Files\Java\jdk-1.8\bin\javac.exe"
-                if os.path.exists(fallback_javac):
-                    javac_cmd = fallback_javac
-                else:
-                    execution_time = time.time() - start_time
-                if 'javac' in str(e):
-                    hint = "Java Compiler (javac) not found. If on Cloud, ensure Docker is used."
-                elif 'java' in str(e):
-                    hint = "Java Runtime (java) not found. If on Cloud, ensure Docker is used."
-                else:
-                    hint = "Check JDK installation."
+            except FileNotFoundError as e:
+                # Try specific detected paths (Windows & Linux)
+                potential_paths = [
+                    r"C:\Program Files\Java\jdk-1.8\bin\javac.exe",
+                    "/usr/bin/javac",
+                    "/usr/lib/jvm/java-17-openjdk-amd64/bin/javac",
+                    "/usr/lib/jvm/default-java/bin/javac"
+                ]
                 
-                error_msg = (
-                    f"Java execution failed: {str(e)}\\n\\n"
-                    f"Hint: {hint}\\n"
-                    "Please contact the organizer."
-                )
-                return False, '', error_msg, execution_time
+                found = False
+                for path in potential_paths:
+                    if os.path.exists(path):
+                        javac_cmd = path
+                        found = True
+                        break
+                
+                if not found:
+                    execution_time = time.time() - start_time
+                    error_msg = (
+                        f"Java execution failed: javac not found in PATH or standard locations.\n"
+                        f"System Error: {str(e)}\n"
+                        "Please contact the organizer."
+                    )
+                    return False, '', error_msg, execution_time
             
             # Create temporary directory for Java files
             temp_dir = tempfile.mkdtemp(dir=config.TEMP_DIR)
@@ -155,9 +159,17 @@ class JavaExecutor(CodeExecutor):
                 self._cleanup(temp_dir)
                 return False, '', f'Compilation Error:\n{compile_result.stderr}', execution_time
             
+            # Derive java_cmd from javac_cmd if possible, otherwise use PATH
+            java_cmd = 'java'
+            if os.path.isabs(javac_cmd):
+                bin_dir = os.path.dirname(javac_cmd)
+                potential_java = os.path.join(bin_dir, 'java.exe' if os.name == 'nt' else 'java')
+                if os.path.exists(potential_java):
+                    java_cmd = potential_java
+
             # Execute Java code (Limit runtime memory to 64m)
             run_result = subprocess.run(
-                ['java', '-Xmx64m', 'Main'],
+                [java_cmd, '-Xmx64m', 'Main'],
                 capture_output=True,
                 text=True,
                 timeout=self.timeout,
