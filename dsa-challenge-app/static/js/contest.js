@@ -356,9 +356,24 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
 
         let result;
         try {
-            result = await response.json();
+            const text = await response.text();
+            try {
+                result = JSON.parse(text);
+            } catch (e) {
+                console.error("Failed to parse JSON:", text);
+                if (text.includes("OutOfMemory") || text.includes("MemoryError")) {
+                    throw new Error("Server Out of Memory. Please try again.");
+                } else if (text.includes("504 Gateway Time-out")) {
+                    throw new Error("Server Timeout. The operation took too long.");
+                } else if (text.includes("502 Bad Gateway")) {
+                    throw new Error("Server Bad Gateway. The backend might be restarting.");
+                } else if (response.status !== 200) {
+                    throw new Error(`Server Error (${response.status}): ${text.substring(0, 50)}...`);
+                }
+                throw new Error("Invalid Server Response: " + text.substring(0, 100));
+            }
         } catch (e) {
-            throw new Error("Server Error: Check your code or try again.");
+            throw e;
         }
 
         if (result.success) {

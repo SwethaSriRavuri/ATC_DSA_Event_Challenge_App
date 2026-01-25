@@ -146,6 +146,9 @@ class JavaExecutor(CodeExecutor):
                 f.write(test_harness)
             
             # Compile Java code (Limit compiler memory to 128m)
+            # Debug logging
+            print(f"Compiling with: {javac_cmd}", flush=True)
+            
             compile_result = subprocess.run(
                 [javac_cmd, '-J-Xmx128m', 'Solution.java'],
                 capture_output=True,
@@ -156,6 +159,7 @@ class JavaExecutor(CodeExecutor):
             
             if compile_result.returncode != 0:
                 execution_time = time.time() - start_time
+                print(f"Compilation Failed: {compile_result.stderr}", flush=True)
                 self._cleanup(temp_dir)
                 return False, '', f'Compilation Error:\n{compile_result.stderr}', execution_time
             
@@ -166,6 +170,8 @@ class JavaExecutor(CodeExecutor):
                 potential_java = os.path.join(bin_dir, 'java.exe' if os.name == 'nt' else 'java')
                 if os.path.exists(potential_java):
                     java_cmd = potential_java
+            
+            print(f"Running with: {java_cmd}", flush=True)
 
             # Execute Java code (Limit runtime memory to 64m)
             run_result = subprocess.run(

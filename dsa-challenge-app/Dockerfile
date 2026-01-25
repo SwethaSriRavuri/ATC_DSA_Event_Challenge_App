@@ -24,4 +24,4 @@ EXPOSE 5000
 
 # Run app.py when the container launches
 # Using Gunicorn for production
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000"]
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--timeout", "120"]
