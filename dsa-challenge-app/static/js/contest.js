@@ -267,6 +267,36 @@ function hideError() {
 }
 
 // Run code
+// Helper to poll for results
+async function pollForStatus(taskId, statusCallback) {
+    const pollInterval = 1000; // 1 second
+
+    while (true) {
+        try {
+            const response = await fetch(`/api/queue/status/${taskId}`);
+
+            if (response.status === 404) {
+                throw new Error("Task not found");
+            }
+
+            const data = await response.json();
+
+            if (data.status === 'completed') {
+                return data.result;
+            } else if (data.status === 'failed') {
+                throw new Error(data.error || "Task failed");
+            } else {
+                // 'pending' or 'processing'
+                if (statusCallback) statusCallback(data.status);
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+        } catch (e) {
+            throw e;
+        }
+    }
+}
+
+// Run code
 document.getElementById('runBtn').addEventListener('click', async () => {
     const code = document.getElementById('codeEditor').value.trim();
     const language = document.getElementById('language').value;
@@ -281,7 +311,7 @@ document.getElementById('runBtn').addEventListener('click', async () => {
     // Disable buttons
     runBtn.disabled = true;
     submitBtn.disabled = true;
-    runBtn.textContent = 'Running...';
+    runBtn.textContent = 'Running...'; // Keep "Running..." text as requested
 
     showResult('Running...', 'info');
     hideError();
@@ -297,20 +327,32 @@ document.getElementById('runBtn').addEventListener('click', async () => {
             })
         });
 
-        const result = await response.json();
+        const initialResult = await response.json();
 
-        if (result.success) {
-            if (result.passed) {
-                showResult(`✓ Sample Test Passed! (${result.time.toFixed(3)}s)`, 'success');
-                showError(`Input: ${JSON.stringify(result.input)}\nExpected: ${JSON.stringify(result.expected)}\nYour Output: ${JSON.stringify(result.actual)}`);
+        if (initialResult.queued) {
+            // Poll for result
+            const result = await pollForStatus(initialResult.task_id);
+
+            // Handle final result
+            if (result.success) {
+                if (result.passed) {
+                    showResult(`✓ Sample Test Passed! (${result.time.toFixed(3)}s)`, 'success');
+                    showError(`Input: ${JSON.stringify(result.input)}\nExpected: ${JSON.stringify(result.expected)}\nYour Output: ${JSON.stringify(result.actual)}`);
+                } else {
+                    showResult(`✗ Sample Test Failed`, 'error');
+                    showError(`Input: ${JSON.stringify(result.input)}\nExpected: ${JSON.stringify(result.expected)}\nYour Output: ${JSON.stringify(result.actual)}`);
+                }
             } else {
-                showResult(`✗ Sample Test Failed`, 'error');
-                showError(`Input: ${JSON.stringify(result.input)}\nExpected: ${JSON.stringify(result.expected)}\nYour Output: ${JSON.stringify(result.actual)}`);
+                showResult(`✗ ${result.error_type === 'execution' ? 'Execution Error' : 'System Error'}`, 'error');
+                showError(result.error || 'Unknown error');
             }
+
         } else {
-            showResult(`✗ ${result.error_type === 'execution' ? 'Execution Error' : 'System Error'}`, 'error');
-            showError(result.error || 'Unknown error');
+            // Fallback for immediate errors (shouldn't happen with queue)
+            showResult(`✗ Error`, 'error');
+            showError(initialResult.message || 'Unknown error');
         }
+
     } catch (error) {
         showResult(`✗ Error`, 'error');
         showError(error.message);
@@ -338,7 +380,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     // Disable buttons
     runBtn.disabled = true;
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Judging...';
+    submitBtn.textContent = 'Judging...'; // Keep "Judging..." text
 
     showResult('Judging...', 'info');
     hideError();
@@ -354,11 +396,11 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
             })
         });
 
-        let result;
+        let initialResult;
         try {
             const text = await response.text();
             try {
-                result = JSON.parse(text);
+                initialResult = JSON.parse(text);
             } catch (e) {
                 console.error("Failed to parse JSON:", text);
                 if (text.includes("OutOfMemory") || text.includes("MemoryError")) {
@@ -376,45 +418,52 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
             throw e;
         }
 
-        if (result.success) {
-            if (result.verdict === 'Accepted') {
-                const marksMsg = result.already_solved ? '(Already Solved)' : `(+${result.score} marks)`;
-                const statusType = result.already_solved ? 'info' : 'success';
+        if (initialResult.queued) {
+            const result = await pollForStatus(initialResult.task_id);
 
-                showResult(`✓ ${result.verdict} ${marksMsg}`, statusType);
-                if (!result.already_solved) {
-                    updateScore();
-                }
+            if (result.success) {
+                if (result.verdict === 'Accepted') {
+                    const marksMsg = result.already_solved ? '(Already Solved)' : `(+${result.score} marks)`;
+                    const statusType = result.already_solved ? 'info' : 'success';
 
-                // Mark current problem as solved in sidebar
-                const currentItem = document.querySelector(`.problem-item:nth-child(${currentProblemId})`);
-                if (currentItem && !currentItem.classList.contains('solved')) {
-                    currentItem.classList.add('solved');
-                    const infoDiv = currentItem.querySelector('.problem-info');
-                    if (infoDiv && !infoDiv.querySelector('.solved-icon')) {
-                        const icon = document.createElement('span');
-                        icon.className = 'solved-icon';
-                        icon.textContent = '✓';
-                        infoDiv.insertBefore(icon, infoDiv.firstChild);
+                    showResult(`✓ ${result.verdict} ${marksMsg}`, statusType);
+                    if (!result.already_solved) {
+                        updateScore();
+                    }
+
+                    // Mark current problem as solved in sidebar
+                    const currentItem = document.querySelector(`.problem-item:nth-child(${currentProblemId})`);
+                    if (currentItem && !currentItem.classList.contains('solved')) {
+                        currentItem.classList.add('solved');
+                        const infoDiv = currentItem.querySelector('.problem-info');
+                        if (infoDiv && !infoDiv.querySelector('.solved-icon')) {
+                            const icon = document.createElement('span');
+                            icon.className = 'solved-icon';
+                            icon.textContent = '✓';
+                            infoDiv.insertBefore(icon, infoDiv.firstChild);
+                        }
+                    }
+
+                    // Auto-advance to next problem
+                    setTimeout(() => {
+                        const nextProblemId = currentProblemId + 1;
+                        if (nextProblemId <= 10) {
+                            loadProblem(nextProblemId);
+                        }
+                    }, 1500);
+                } else {
+                    showResult(`✗ ${result.verdict}`, 'error');
+                    if (result.details) {
+                        showError(result.details);
                     }
                 }
-
-                // Auto-advance to next problem
-                setTimeout(() => {
-                    const nextProblemId = currentProblemId + 1;
-                    if (nextProblemId <= 10) {
-                        loadProblem(nextProblemId);
-                    }
-                }, 1500);
             } else {
-                showResult(`✗ ${result.verdict}`, 'error');
-                if (result.details) {
-                    showError(result.details);
-                }
+                showResult(`Error: ${result.message}`, 'error');
             }
         } else {
-            showResult(`Error: ${result.message}`, 'error');
+            showResult(`Error: ${initialResult.message || 'Unknown error'}`, 'error');
         }
+
     } catch (error) {
         showResult(`✗ Error`, 'error');
         showError(error.message);

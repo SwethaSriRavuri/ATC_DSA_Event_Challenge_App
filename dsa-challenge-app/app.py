@@ -1,11 +1,14 @@
 from flask import Flask, render_template, request, jsonify, session, redirect
 from backend.service import ContestService
+from backend.queue_manager import JobQueue
 import os
 import secrets
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dsa-challenge-secure-key-2024')
 service = ContestService()
+# Initialize Job Queue with 2 concurrent workers
+job_queue = JobQueue(max_concurrent=2)
 
 @app.route('/')
 def index():
@@ -59,23 +62,21 @@ def get_problem(problem_id):
     problem = service.get_problem(problem_id, language)
     return jsonify(problem)
 
-@app.route('/api/run', methods=['POST'])
-def run_code():
-    """Run code against sample test case"""
-    data = request.json
-    problem_id = data['problem_id']
-    code = data['code']
-    language = data['language']
-    
-    from backend.problem_loader import get_test_cases
-    from backend.executor import get_executor
-    from backend.judge import Judge
-    
-    test_cases = get_test_cases(problem_id)
-    if not test_cases:
-        return jsonify({'success': False, 'message': 'No test cases available'})
-    
+# Helper function to perform the actual run
+def _perform_run_code(data):
     try:
+        problem_id = data['problem_id']
+        code = data['code']
+        language = data['language']
+        
+        from backend.problem_loader import get_test_cases
+        from backend.executor import get_executor
+        from backend.judge import Judge
+        
+        test_cases = get_test_cases(problem_id)
+        if not test_cases:
+            return {'success': False, 'message': 'No test cases available'}
+        
         executor = get_executor(language)
         test_input = test_cases[0]['input']
         expected = test_cases[0]['expected_output']
@@ -92,7 +93,7 @@ def run_code():
             judge = Judge()
             passed = judge._compare_output(actual, expected)
             
-            return jsonify({
+            return {
                 'success': True,
                 'passed': passed,
                 'input': test_input,
@@ -100,37 +101,73 @@ def run_code():
                 'actual': actual,
                 'time': exec_time,
                 'error': None
-            })
+            }
         else:
-            # Return error separately
-            return jsonify({
+            return {
                 'success': False,
                 'passed': False,
                 'error': error,
                 'error_type': 'execution'
-            })
+            }
     except Exception as e:
-        return jsonify({
+        return {
             'success': False,
             'passed': False,
             'error': str(e),
             'error_type': 'system'
-        })
+        }
 
-@app.route('/api/submit', methods=['POST'])
-def submit_code():
-    """Submit code for judging"""
-    if 'participant_id' not in session:
-        return jsonify({'success': False, 'message': 'Not logged in'})
-    
+@app.route('/api/run', methods=['POST'])
+def run_code():
+    """Queue code for execution"""
     data = request.json
-    result = service.submit_code(
-        session['participant_id'],
+    
+    # Add to queue
+    task_id = job_queue.add_job('run', _perform_run_code, data)
+    
+    return jsonify({
+        'success': True,
+        'queued': True,
+        'task_id': task_id,
+        'message': 'Queued for execution'
+    })
+
+# Helper function for submission
+def _perform_submit(participant_id, data):
+    return service.submit_code(
+        participant_id,
         data['problem_id'],
         data['code'],
         data['language']
     )
-    return jsonify(result)
+
+@app.route('/api/submit', methods=['POST'])
+def submit_code():
+    """Queue submission for judging"""
+    if 'participant_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'})
+    
+    data = request.json
+    participant_id = session['participant_id']
+    
+    # Add to queue
+    task_id = job_queue.add_job('submit', _perform_submit, participant_id, data)
+    
+    return jsonify({
+        'success': True,
+        'queued': True,
+        'task_id': task_id,
+        'message': 'Queued for judging'
+    })
+    
+@app.route('/api/queue/status/<task_id>', methods=['GET'])
+def get_queue_status(task_id):
+    """Check status of a queued job"""
+    status = job_queue.get_status(task_id)
+    if status is None:
+        return jsonify({'status': 'not_found'}), 404
+        
+    return jsonify(status)
 
 @app.route('/api/contest/status', methods=['GET'])
 def contest_status():
