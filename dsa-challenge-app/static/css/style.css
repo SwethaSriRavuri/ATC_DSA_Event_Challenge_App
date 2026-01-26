@@ -21,20 +21,22 @@ body {
 
 .registration-card {
     background: white;
-    border-radius: 16px;
-    padding: 40px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 25px 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-height: 95vh;
+    overflow-y: auto;
 }
 
 .header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .header h1 {
-    font-size: 32px;
+    font-size: 24px;
     color: #333;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
 .subtitle {
@@ -43,15 +45,15 @@ body {
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     color: #333;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .form-group input {
@@ -72,13 +74,13 @@ body {
 .info-note {
     background: #f0f4ff;
     border-left: 4px solid #667eea;
-    padding: 12px 16px;
-    margin: 20px 0;
+    padding: 10px;
+    margin: 15px 0;
     border-radius: 4px;
     display: flex;
     align-items: start;
-    gap: 10px;
-    font-size: 13px;
+    gap: 8px;
+    font-size: 12px;
     color: #555;
 }
 

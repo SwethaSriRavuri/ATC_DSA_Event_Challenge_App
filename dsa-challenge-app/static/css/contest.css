@@ -89,10 +89,35 @@
     border-radius: 0 0 6px 6px;
 }
 
+html,
 body {
     background: #0d1117;
     margin: 0;
     padding: 0;
+    height: 100%;
+    overflow-y: scroll !important;
+    /* FORCE SCROLLBAR TRACK: This guarantees stability */
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Custom Scrollbar to prevent layout shifts internally too */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0d1117;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #58a6ff;
 }
 
 .contest-container {
@@ -192,8 +217,8 @@ body {
     flex-direction: column;
     padding: 20px;
     gap: 16px;
-    overflow-y: auto;
-    /* Allow section to scroll if content is too tall */
+    overflow: hidden;
+    /* Prevent container scrollbar causing width jumps */
 }
 
 .problem-panel,
@@ -205,9 +230,11 @@ body {
 }
 
 .problem-panel {
-    flex: 0 0 auto;
-    max-height: 35%;
-    overflow-y: auto;
+    flex: 0 0 40%;
+    /* Fixed 40% height */
+    overflow-y: scroll;
+    /* Force scrollbar track to always be visible (empty or active) */
+    min-height: 200px;
 }
 
 .problem-panel h3,
@@ -225,9 +252,14 @@ body {
 }
 
 .editor-panel {
+    /* Use remaining space (approx 60% minus gaps) */
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    /* Important for scroll in flex items */
+    overflow-y: hidden;
+    /* Editor itself shouldn't scroll the container, but textArea inside might */
 }
 
 .editor-header {
