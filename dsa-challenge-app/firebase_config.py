@@ -20,13 +20,19 @@ def init_firebase():
     # 1. Update this path to point to your actual serviceAccountKey.json
     # 2. Or set the FIREBASE_CREDENTIALS env var with the JSON content
     cred_path = "serviceAccountKey.json"
+    firebase_creds_json = os.environ.get('FIREBASE_CREDENTIALS')
     
-    if os.path.exists(cred_path):
+    if firebase_creds_json:
+        try:
+            creds_dict = json.loads(firebase_creds_json)
+            cred = credentials.Certificate(creds_dict)
+        except Exception as e:
+            print(f"Error parsing FIREBASE_CREDENTIALS env var: {e}")
+            return None
+    elif os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
     else:
-        # Fallback for development/testing if file missing, or use env var
-        # Ideally, we should error out here in production
-        print(f"WARNING: {cred_path} not found. Waiting for setup...")
+        print(f"ERROR: No Firebase credentials found (missing {cred_path} and FIREBASE_CREDENTIALS env var).")
         return None
 
     try:
