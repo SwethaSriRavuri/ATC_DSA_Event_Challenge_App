@@ -6,6 +6,7 @@ from backend.models import (
 from backend.problem_loader import load_all_problems, get_problem_with_starter_code
 from backend.judge import Judge
 import config
+from firebase_config import get_db, firestore
 
 class ContestService:
     """Service layer for contest management"""
@@ -277,15 +278,42 @@ class ContestService:
         # 1. Lazy Finalization of expired sessions
         try:
             active_contests = session.query(Contest).filter_by(status='ACTIVE').all()
-            for contest in active_contests:
-                if contest.start_time:
-                    elapsed = (datetime.now() - contest.start_time).total_seconds()
-                    if elapsed >= contest.duration:
-                        # Finalize and cap the time at max duration
-                        contest.is_active = 0
-                        contest.status = 'COMPLETED'
-                        contest.end_time = contest.start_time + timedelta(seconds=contest.duration)
-                        print(f"Auto-finalized session for participant {contest.participant_id}")
+            if active_contests:
+                db = get_db()
+                for contest in active_contests:
+                    if contest.start_time:
+                        # Ensure comparison is timezone-naive or consistent
+                        now = datetime.now()
+                        st = contest.start_time
+                        
+                        # Strip timezone if present to avoid comparison errors
+                        if st.tzinfo is not None: st = st.replace(tzinfo=None)
+                        if now.tzinfo is not None: now = now.replace(tzinfo=None)
+                        
+                        elapsed = (now - st).total_seconds()
+                        
+                        # If more than 2 hours passed, or if time is negative (timezone glitch), finalize
+                        if elapsed >= contest.duration or elapsed < -3600:
+                            # Finalize and cap the time at max duration
+                            contest.is_active = 0
+                            contest.status = 'COMPLETED'
+                            capped_end_time = contest.start_time + timedelta(seconds=contest.duration)
+                            contest.end_time = capped_end_time
+                            
+                            # SYNCHRONIZE WITH FIRESTORE (Stop the live timer in organizer.html)
+                            if db:
+                                try:
+                                    # Participant IDs are strings in Firestore
+                                    p_ref = db.collection('participants').document(str(contest.participant_id))
+                                    p_ref.update({
+                                        'status': 'COMPLETED',
+                                        'end_time': capped_end_time
+                                    })
+                                    print(f"Synced finalization to Firestore for participant {contest.participant_id}")
+                                except Exception as fe:
+                                    print(f"Firestore sync failed for {contest.participant_id}: {fe}")
+
+                            print(f"Auto-finalized session for participant {contest.participant_id}")
             
             session.commit()
         except Exception as e:

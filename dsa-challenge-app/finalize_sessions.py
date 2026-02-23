@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from backend.models import get_session, Contest
+from firebase_config import get_db
 import config
 
 def finalize_all_expired_sessions():
@@ -15,16 +16,30 @@ def finalize_all_expired_sessions():
     
     try:
         active_contests = session.query(Contest).filter_by(status='ACTIVE').all()
+        db = get_db()
         count = 0
         
         for contest in active_contests:
             if contest.start_time:
                 elapsed = (datetime.now() - contest.start_time).total_seconds()
-                if elapsed >= contest.duration:
+                if elapsed >= contest.duration or elapsed < -3600:
                     # Finalize and cap at exact duration
                     contest.is_active = 0
                     contest.status = 'COMPLETED'
-                    contest.end_time = contest.start_time + timedelta(seconds=contest.duration)
+                    capped_end_time = contest.start_time + timedelta(seconds=contest.duration)
+                    contest.end_time = capped_end_time
+                    
+                    # SYNC TO FIRESTORE
+                    if db:
+                        try:
+                            p_ref = db.collection('participants').document(str(contest.participant_id))
+                            p_ref.update({
+                                'status': 'COMPLETED',
+                                'end_time': capped_end_time
+                            })
+                        except Exception as fe:
+                            print(f"Firestore Sync Error: {fe}")
+
                     count += 1
                     print(f"Finalized Participant ID {contest.participant_id} (Duration capped at {contest.duration}s)")
         
