@@ -271,15 +271,28 @@ class ContestService:
             return {'success': False, 'message': str(e)}
 
     def get_leaderboard_data(self):
-        """Get data for organizer leaderboard"""
+        """Get data for organizer leaderboard with auto-finalization of expired sessions"""
         session = get_session()
-        # Join Result, Participant, Contest
-        # We want all participants, even if no result yet (though they should have one if started)
         
-        # This is a bit complex due to our separate tables. 
-        # Let's just query Results and join Participant and Contest manually or via relationships if defined (they aren't).
-        # We'll just fetch all and map in python for simplicity since N is small.
-        
+        # 1. Lazy Finalization of expired sessions
+        try:
+            active_contests = session.query(Contest).filter_by(status='ACTIVE').all()
+            for contest in active_contests:
+                if contest.start_time:
+                    elapsed = (datetime.now() - contest.start_time).total_seconds()
+                    if elapsed >= contest.duration:
+                        # Finalize and cap the time at max duration
+                        contest.is_active = 0
+                        contest.status = 'COMPLETED'
+                        contest.end_time = contest.start_time + timedelta(seconds=contest.duration)
+                        print(f"Auto-finalized session for participant {contest.participant_id}")
+            
+            session.commit()
+        except Exception as e:
+            print(f"Error during auto-finalization: {e}")
+            session.rollback()
+
+        # 2. Fetch data for leaderboard
         participants = session.query(Participant).all()
         results = session.query(Result).all()
         contests = session.query(Contest).all()

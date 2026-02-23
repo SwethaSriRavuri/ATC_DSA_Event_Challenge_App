@@ -129,8 +129,9 @@
             <table>
                 <thead>
                     <tr>
-                        <th>S.No.</th>
+                        <th>Rank</th>
                         <th>Name</th>
+                        <th>Email</th>
                         <th>Score</th>
                         <th>Solved</th>
                         <th>Status</th>
@@ -145,66 +146,126 @@
         </div>
     </div>
 
-    <script>
-        function resetDatabase() {
-            if (confirm("⚠️ DANGER: Are you sure you want to DELETE ALL DATA?\n\nThis will remove all participants, scores, and submissions.\nThis action cannot be undone.")) {
-                fetch('/secret/reset-db-now', {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert("✅ Database Cleared Successfully!");
-                            updateLeaderboard(); // Refresh empty table
-                        } else {
-                            alert("❌ Error: " + data.message);
-                        }
-                    })
-                    .catch(err => alert("❌ Error connecting to server"));
-            }
-        }
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-        function updateLeaderboard() {
-            fetch('/api/organizer/data')
-                .then(response => response.json())
-                .then(data => {
+    <script>
+        // GLOBAL CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjmZ_u6qsoSIPS_k9mhBnpZaW7mr2EFmQ",
+            authDomain: "atc-dsa-challenge-app.firebaseapp.com",
+            projectId: "atc-dsa-challenge-app",
+            storageBucket: "atc-dsa-challenge-app.firebasestorage.app",
+            messagingSenderId: "1018564474911",
+            appId: "1:1018564474911:web:71194a5ad3c164acd43d2a",
+            measurementId: "G-2B77DHCJLH"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Real-time Listener
+        function subscribeToLeaderboard() {
+            db.collection("participants")
+                .orderBy("score", "desc")
+                // .orderBy("time_taken", "asc") // Tie-breaker (Disabled for visibility)
+                .onSnapshot((snapshot) => {
                     const tbody = document.getElementById('leaderboardBody');
                     tbody.innerHTML = '';
 
-                    data.forEach((participant, index) => {
+                    let rank = 1;
+                    snapshot.forEach((doc) => {
+                        const p = doc.data();
                         const tr = document.createElement('tr');
 
                         let statusClass = 'status-active';
-                        if (participant.status === 'COMPLETED') statusClass = 'status-completed';
-                        if (participant.status === 'DISQUALIFIED') statusClass = 'status-disqualified';
+                        if (p.status === 'COMPLETED') statusClass = 'status-completed';
+                        if (p.status === 'DISQUALIFIED') statusClass = 'status-disqualified';
 
-                        const violationClass = participant.violations > 0 ? 'violation-high' : '';
+                        const violationClass = (p.violations || 0) > 0 ? 'violation-high' : '';
+
+                        let timeDisplay = '00:00:00';
+                        if (p.start_time) {
+                            const start = p.start_time.toDate();
+                            const end = p.end_time ? p.end_time.toDate() : new Date();
+
+                            // If active, use current time (live ticker effect requires re-render, but for now snapshots work)
+                            // Ideally, we'd update this every second, but Firestore snapshot triggers on change.
+                            // To make it truly live, we need a setInterval on the page that reads these start times.
+                            // For now, let's just show the snapshot time diff.
+
+                            const diffMs = end - start;
+                            if (diffMs > 0) {
+                                const totalSecs = Math.floor(diffMs / 1000);
+                                const h = Math.floor(totalSecs / 3600).toString().padStart(2, '0');
+                                const m = Math.floor((totalSecs % 3600) / 60).toString().padStart(2, '0');
+                                const s = (totalSecs % 60).toString().padStart(2, '0');
+                                timeDisplay = `${h}:${m}:${s}`;
+                            }
+                        }
 
                         tr.innerHTML = `
-                            <td>${index + 1}</td>
-                            <td>
-                                <strong>${participant.name}</strong><br>
-                                <span style="font-size: 0.8rem; color: #64748b;">${participant.email}</span>
-                            </td>
-                            <td>${participant.score} / 100</td>
-                            <td>${participant.solved} / 10</td>
-                            <td><span class="status-badge ${statusClass}">${participant.status}</span></td>
-                            <td class="violation-count ${violationClass}">${participant.violations}</td>
-                            <td>${participant.time_taken}</td>
+                            <td>${rank++}</td>
+                            <td><strong>${p.name || 'Unknown'}</strong></td>
+                            <td><span style="font-size: 0.8rem; color: #64748b;">${p.email || ''}</span></td>
+                            <td>${p.score || 0} / 145</td>
+                            <td>${(p.solved || []).length} / 10</td>
+                            <td><span class="status-badge ${statusClass}">${p.status || 'ACTIVE'}</span></td>
+                            <td class="violation-count ${violationClass}">${p.violations || 0}</td>
+                            <td>${timeDisplay}</td>
                         `;
                         tbody.appendChild(tr);
                     });
 
-                    document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
-                })
-                .catch(err => console.error('Error fetching data:', err));
+                    document.getElementById('lastUpdated').textContent = 'Live Updates Active 🟢';
+                }, (error) => {
+                    console.error("Error getting leaderboard:", error);
+                    document.getElementById('lastUpdated').textContent = 'Connection Error 🔴';
+                });
         }
 
-        // Initial load
-        updateLeaderboard();
+        async function resetDatabase() {
+            if (!confirm("⚠️ DANGER: DELETE ALL DATA?\n\nThis will wipe everything (SQL + Firestore).\nCannot be undone.")) return;
 
-        // Auto-refresh every 5 seconds
-        setInterval(updateLeaderboard, 5000);
+            document.getElementById('lastUpdated').textContent = 'Resetting...';
+
+            try {
+                // 1. Reset SQL (Backend)
+                await fetch('/secret/reset-db-now');
+
+                // 2. Reset Firestore (Frontend Client SDK)
+                // We must delete documents individually as client SDK doesn't support 'delete collection'
+                const batchsize = 500;
+
+                const deleteCollection = async (collectionPath) => {
+                    const snapshot = await db.collection(collectionPath).get();
+                    const batch = db.batch();
+                    let count = 0;
+                    snapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                        count++;
+                    });
+                    if (count > 0) await batch.commit();
+                    console.log(`Deleted ${count} from ${collectionPath}`);
+                };
+
+                await deleteCollection('participants');
+                await deleteCollection('submissions');
+
+                alert("✅ System Reset Successful!");
+                window.location.reload();
+
+            } catch (err) {
+                console.error(err);
+                alert("Reset Failed: " + err.message);
+                document.getElementById('lastUpdated').textContent = 'Reset Failed';
+            }
+        }
+
+        // Start Listening
+        subscribeToLeaderboard();
     </script>
 </body>
 

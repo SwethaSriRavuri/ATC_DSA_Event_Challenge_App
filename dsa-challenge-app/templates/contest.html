@@ -11,6 +11,46 @@
 
 <body>
     <!-- Start Overlay -->
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // GLOBAL CONFIG - USER MUST UPDATE THIS
+        // If you are the organizer, replace this object with your Firebase Project Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjmZ_u6qsoSIPS_k9mhBnpZaW7mr2EFmQ",
+            authDomain: "atc-dsa-challenge-app.firebaseapp.com",
+            projectId: "atc-dsa-challenge-app",
+            storageBucket: "atc-dsa-challenge-app.firebasestorage.app",
+            messagingSenderId: "1018564474911",
+            appId: "1:1018564474911:web:71194a5ad3c164acd43d2a",
+            measurementId: "G-2B77DHCJLH"
+        };
+
+        // Initialize Firebase
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            console.log("🔥 Firebase initialized");
+        } catch (e) {
+            console.error("Firebase Init Error (Did you update the config?):", e);
+        }
+
+        // Store Session Info
+        // Priority: LocalStorage (Client-Side Reg) -> Template (Server-Side Reg)
+        let PARTICIPANT_ID = localStorage.getItem('dsa_participant_id') || "{{ participant_id }}";
+        let PARTICIPANT_NAME = localStorage.getItem('dsa_participant_name') || "{{ name }}";
+        let PARTICIPANT_EMAIL = localStorage.getItem('dsa_participant_email') || "{{ email }}";
+
+        // Auth Check
+        if (!PARTICIPANT_ID || PARTICIPANT_ID === 'None' || PARTICIPANT_ID === '') {
+            console.warn("No ID found, redirecting to login");
+            window.location.href = '/';
+        }
+    </script>
+
     <div id="startOverlay"
         style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white;">
         <h1>Ready to Begin?</h1>

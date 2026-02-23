@@ -17,7 +17,7 @@ import os
 # OPTION 3 (Cloud): After you deploy to Render/Heroku/AWS, they will give you a public URL.
 # Paste that URL here.
 # Example: 'https://dsa-contest-app.onrender.com'
-BACKEND_URL = 'https://atc-dsa-event-challenge-app.onrender.com' # <--- CHANGE THIS AFTER DEPLOYING BACKEND 
+BACKEND_URL = "https://atc-dsa-app.onrender.com"  # Production URL
 
 class ClientApi:
     """
@@ -54,6 +54,10 @@ def main():
         height=900,
         fullscreen=True, 
         frameless=True,
+        on_top=True,       # Keep on top of other windows
+        easy_drag=False,   # Disable dragging
+        resizable=False,   # Disable resizing
+        text_select=False, # Disable selecting text
         js_api=api
     )
     

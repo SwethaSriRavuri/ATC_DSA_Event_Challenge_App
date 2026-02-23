@@ -20,6 +20,28 @@ def reset_db():
     
     session.commit()
     session.close()
+    
+    # RESET FIRESTORE
+    try:
+        from firebase_config import db
+        if db:
+            print("Deleting Firestore Collections...")
+            
+            def delete_collection(coll_ref, batch_size):
+                docs = coll_ref.limit(batch_size).stream()
+                deleted = 0
+                for doc in docs:
+                    doc.reference.delete()
+                    deleted += 1
+                if deleted >= batch_size:
+                    delete_collection(coll_ref, batch_size)
+            
+            delete_collection(db.collection('participants'), 50)
+            delete_collection(db.collection('submissions'), 50)
+            print("Firestore cleared.")
+    except Exception as e:
+        print(f"Firestore reset error: {e}")
+
     print("Database reset complete. All participant data removed.")
 
 if __name__ == "__main__":

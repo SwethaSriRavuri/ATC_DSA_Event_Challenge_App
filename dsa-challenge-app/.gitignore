@@ -3,6 +3,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
+env/
 build/
 develop-eggs/
 dist/
@@ -21,13 +22,9 @@ wheels/
 .pytest_cache/
 .coverage
 htmlcov/
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-instance/
-.webassets-cache
-.DS_Store
+serviceAccountKey.json
+*.db
 *.sqlite3
-contest_v2.db
+instance/
+.web/
+.DS_Store
