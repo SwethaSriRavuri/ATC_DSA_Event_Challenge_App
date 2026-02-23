@@ -210,7 +210,8 @@ def record_violation():
 
 @app.route('/organizer')
 def organizer_view():
-    """Organizer leaderboard view"""
+    """Organizer leaderboard view - triggers lazy finalization of expired sessions"""
+    service.get_leaderboard_data()
     return render_template('organizer.html')
 
 @app.route('/api/organizer/data', methods=['GET'])
