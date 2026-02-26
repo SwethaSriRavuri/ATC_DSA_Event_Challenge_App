@@ -13,9 +13,15 @@ else:
 # Use DATABASE_URL if provided (e.g. by Render/Heroku), otherwise use local SQLite
 DB_PATH = os.path.join(DATA_DIR, 'contest_v2.db')
 DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    # SQLAlchemy 1.4+ deprecated postgres://, needs postgresql://
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+if DATABASE_URL:
+    if DATABASE_URL.startswith("postgres://"):
+        # SQLAlchemy 1.4+ deprecated postgres://, needs postgresql://
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
+    # Render automatically injects internal DATABASE_URLs which can break boot if inactive
+    if "dpg-" in DATABASE_URL:
+        print("Ignoring internal Render database URL, falling back to SQLite.")
+        DATABASE_URL = None
 
 SQLALCHEMY_DATABASE_URI = DATABASE_URL if DATABASE_URL else f'sqlite:///{DB_PATH}'
 
