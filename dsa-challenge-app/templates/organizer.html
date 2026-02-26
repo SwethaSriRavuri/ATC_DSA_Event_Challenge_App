@@ -180,23 +180,26 @@
                         const p = doc.data();
                         const tr = document.createElement('tr');
 
+                        let status = p.status || 'ACTIVE';
                         let statusClass = 'status-active';
-                        if (p.status === 'COMPLETED') statusClass = 'status-completed';
-                        if (p.status === 'DISQUALIFIED') statusClass = 'status-disqualified';
-
-                        const violationClass = (p.violations || 0) > 0 ? 'violation-high' : '';
 
                         let timeDisplay = '00:00:00';
                         if (p.start_time) {
                             const start = p.start_time.toDate();
                             const end = p.end_time ? p.end_time.toDate() : new Date();
 
-                            // If active, use current time (live ticker effect requires re-render, but for now snapshots work)
-                            // Ideally, we'd update this every second, but Firestore snapshot triggers on change.
-                            // To make it truly live, we need a setInterval on the page that reads these start times.
-                            // For now, let's just show the snapshot time diff.
+                            let diffMs = end - start;
+                            const CONTEST_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
 
-                            const diffMs = end - start;
+                            // VISUAL FIX: If time exceeds 2 hours, cap it and force status to COMPLETED
+                            if (diffMs >= CONTEST_DURATION_MS) {
+                                diffMs = CONTEST_DURATION_MS;
+                                status = 'COMPLETED';
+                            }
+
+                            if (status === 'COMPLETED') statusClass = 'status-completed';
+                            if (status === 'DISQUALIFIED') statusClass = 'status-disqualified';
+
                             if (diffMs > 0) {
                                 const totalSecs = Math.floor(diffMs / 1000);
                                 const h = Math.floor(totalSecs / 3600).toString().padStart(2, '0');
@@ -212,7 +215,7 @@
                             <td><span style="font-size: 0.8rem; color: #64748b;">${p.email || ''}</span></td>
                             <td>${p.score || 0} / 145</td>
                             <td>${(p.solved || []).length} / 10</td>
-                            <td><span class="status-badge ${statusClass}">${p.status || 'ACTIVE'}</span></td>
+                            <td><span class="status-badge ${statusClass}">${status}</span></td>
                             <td class="violation-count ${violationClass}">${p.violations || 0}</td>
                             <td>${timeDisplay}</td>
                         `;
