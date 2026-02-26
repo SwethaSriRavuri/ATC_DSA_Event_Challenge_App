@@ -182,6 +182,7 @@
 
                         let status = p.status || 'ACTIVE';
                         let statusClass = 'status-active';
+                        const violationClass = (p.violations || 0) > 0 ? 'violation-high' : '';
 
                         let timeDisplay = '00:00:00';
                         if (p.start_time) {
