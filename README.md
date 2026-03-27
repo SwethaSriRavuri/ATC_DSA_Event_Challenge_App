@@ -1,6 +1,6 @@
 # DSA Coding Challenge Application
 
-This project is an **online coding challenge platform** developed specifically for a club event to conduct LeetCode-style DSA contests.  
+This project is an **online coding challenge platform** developed specifically for a club event to conduct LeetCode-style DSA contest.  
 
 It serves as a **demonstration of system design and implementation**, rather than a reusable or production-ready platform.
 
